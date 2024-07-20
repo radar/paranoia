@@ -1,22 +1,32 @@
 # paranoia Changelog
 
-## 2.6.3
+## 2.6.4 - July 20, 2024
 
-* [#548](https://github.com/rubysherpas/paranoia/pull/441) Add support for [Rails 7.1](https://github.com/rails/rails/releases/tag/v7.1.0) (#441)
-  
+Add support for [Rails 7.2](https://github.com/rails/rails/releases/tag/v7.2.0)
+
+* [#554](https://github.com/rubysherpas/paranoia/pull/554) Support prebuilt counter cache association list (#554)
+  [Joé Dupuis](https://github.com/JoeDupuis)
+* [#551](https://github.com/rubysherpas/paranoia/pull/551) Fix: restore has_one with scope (#551)
+  [Paweł Charyło](https://github.com/zygzagZ)
+* [#555](https://github.com/rubysherpas/paranoia/pull/555) 📝 Add Yard documentation for Paranoia::Query (#555)
+  [Clément Prod'homme](https://github.com/cprodhomme)
+
+## 2.6.3 - Oct 12, 2023
+
+* [#548](https://github.com/rubysherpas/paranoia/pull/548) Add support for [Rails 7.1](https://github.com/rails/rails/releases/tag/v7.1.0) (#548)
   [Indyarocks](https://github.com/indyarocks)
 
-## 2.6.2
+## 2.6.2 - Jun 6, 2023
 
 * [#441](https://github.com/rubysherpas/paranoia/pull/441) Recursive restore with has_many/one through assocs (#441) 
   [Emil Ong](https://github.com/emilong)
 
-## 2.6.1
+## 2.6.1 - Nov 16, 2022
 
 * [#535](https://github.com/rubysherpas/paranoia/pull/535) Allow to skip updating paranoia_destroy_attributes for records while really_destroy!
   [Anton Bogdanov](https://github.com/kortirso)
 
-## 2.6.0
+## 2.6.0 - Mar 23, 2022
 
 * [#512](https://github.com/rubysherpas/paranoia/pull/512) Quote table names; Mysql 8 has keywords that might match table names which cause an exception.
 * [#476](https://github.com/rubysherpas/paranoia/pull/476) Fix syntax error in documentation.
