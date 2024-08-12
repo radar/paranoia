@@ -5,7 +5,7 @@ sqlite = ENV['SQLITE_VERSION']
 if sqlite
   gem 'sqlite3', sqlite, platforms: [:ruby]
 else
-  gem 'sqlite3', platforms: [:ruby]
+  gem 'sqlite3', '~> 1.4', platforms: [:ruby]
 end
 
 platforms :jruby do
