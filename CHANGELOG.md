@@ -2,7 +2,10 @@
 
 ## 3.0.0 - August 13, 2024
 
-- [#563](https://github.com/rubysherpas/paranoia/pull/563) Support Rails 7.2 & Rails 8.0
+_Tagged as 3.0 as Ruby + Rails version constraints have been modernised._
+
+- [#564](https://github.com/rubysherpas/paranoia/pull/564) Support Rails edge
+- [#563](https://github.com/rubysherpas/paranoia/pull/563) Support Rails 7.2
 
 ## 2.6.4 - July 20, 2024
 
