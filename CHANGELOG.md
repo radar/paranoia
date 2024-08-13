@@ -2,8 +2,6 @@
 
 ## 2.6.4 - July 20, 2024
 
-Add support for [Rails 7.2](https://github.com/rails/rails/releases/tag/v7.2.0)
-
 * [#554](https://github.com/rubysherpas/paranoia/pull/554) Support prebuilt counter cache association list (#554)
   [Joé Dupuis](https://github.com/JoeDupuis)
 * [#551](https://github.com/rubysherpas/paranoia/pull/551) Fix: restore has_one with scope (#551)
