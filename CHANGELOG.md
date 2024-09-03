@@ -1,8 +1,13 @@
 # paranoia Changelog
 
-## 2.6.4 - July 20, 2024
+## 3.0.0 - August 13, 2024
 
-Add support for [Rails 7.2](https://github.com/rails/rails/releases/tag/v7.2.0)
+_Tagged as 3.0 as Ruby + Rails version constraints have been modernised._
+
+- [#564](https://github.com/rubysherpas/paranoia/pull/564) Support Rails edge
+- [#563](https://github.com/rubysherpas/paranoia/pull/563) Support Rails 7.2
+
+## 2.6.4 - July 20, 2024
 
 * [#554](https://github.com/rubysherpas/paranoia/pull/554) Support prebuilt counter cache association list (#554)
   [Joé Dupuis](https://github.com/JoeDupuis)
@@ -18,7 +23,7 @@ Add support for [Rails 7.2](https://github.com/rails/rails/releases/tag/v7.2.0)
 
 ## 2.6.2 - Jun 6, 2023
 
-* [#441](https://github.com/rubysherpas/paranoia/pull/441) Recursive restore with has_many/one through assocs (#441) 
+* [#441](https://github.com/rubysherpas/paranoia/pull/441) Recursive restore with has_many/one through assocs (#441)
   [Emil Ong](https://github.com/emilong)
 
 ## 2.6.1 - Nov 16, 2022
