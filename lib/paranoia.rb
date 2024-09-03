@@ -24,6 +24,7 @@ module Paranoia
   module Query
     def paranoid? ; true ; end
 
+    # If you want to find all records, even those which are deleted
     def with_deleted
       if ActiveRecord::VERSION::STRING >= "4.1"
         return unscope where: paranoia_column
@@ -31,6 +32,7 @@ module Paranoia
       all.tap { |x| x.default_scoped = false }
     end
 
+    # If you want to find only the deleted records
     def only_deleted
       if paranoia_sentinel_value.nil?
         return with_deleted.where.not(paranoia_column => paranoia_sentinel_value)
@@ -45,6 +47,7 @@ module Paranoia
     end
     alias_method :deleted, :only_deleted
 
+    # If you want to restore a record
     def restore(id_or_ids, opts = {})
       ids = Array(id_or_ids).flatten
       any_object_instead_of_id = ids.any? { |id| ActiveRecord::Base === id }
@@ -60,7 +63,7 @@ module Paranoia
   def paranoia_destroy
     with_transaction_returning_status do
       result = run_callbacks(:destroy) do
-        @_disable_counter_cache = deleted?
+        @_disable_counter_cache = paranoia_destroyed?
         result = paranoia_delete
         next result unless result && ActiveRecord::VERSION::STRING >= '4.2'
         each_counter_cached_associations do |association|
@@ -73,7 +76,7 @@ module Paranoia
         @_disable_counter_cache = false
         result
       end
-      raise ActiveRecord::Rollback, "Not destroyed" unless self.deleted?
+      raise ActiveRecord::Rollback, "Not destroyed" unless paranoia_destroyed?
       result
     end || false
   end
@@ -173,8 +176,25 @@ module Paranoia
 
   private
 
+  def counter_cache_disabled?
+    defined?(@_disable_counter_cache) && @_disable_counter_cache
+  end
+
+  def counter_cached_association_names
+    return [] if counter_cache_disabled?
+    super
+  end
+
   def each_counter_cached_associations
-    !(defined?(@_disable_counter_cache) && @_disable_counter_cache) ? super : []
+    return [] if counter_cache_disabled?
+
+    if defined?(super)
+      super
+    else
+      counter_cached_association_names.each do |name|
+        yield association(name)
+      end
+    end
   end
 
   def paranoia_restore_attributes
@@ -191,6 +211,16 @@ module Paranoia
 
   def timestamp_attributes_with_current_time
     timestamp_attributes_for_update_in_model.each_with_object({}) { |attr,hash| hash[attr] = current_time_from_proper_timezone }
+  end
+
+  def paranoia_find_has_one_target(association)
+    association_foreign_key = association.options[:through].present? ? association.klass.primary_key : association.foreign_key
+    association_find_conditions = { association_foreign_key => self.id }
+    association_find_conditions[association.type] = self.class.name if association.type
+
+    scope = association.klass.only_deleted.where(association_find_conditions)
+    scope = scope.merge(association.scope) if association.scope
+    scope.first
   end
 
   # restore associated records that have been soft deleted when
@@ -216,24 +246,8 @@ module Paranoia
       end
 
       if association_data.nil? && association.macro.to_s == "has_one"
-        association_class_name = association.klass.name
-
-        association_foreign_key = if association.options[:through].present?
-          association.klass.primary_key
-        else
-          association.foreign_key
-        end
-
-        if association.type
-          association_polymorphic_type = association.type
-          association_find_conditions = { association_polymorphic_type => self.class.name.to_s, association_foreign_key => self.id }
-        else
-          association_find_conditions = { association_foreign_key => self.id }
-        end
-
-        association_class = association.klass
-        if association_class.paranoid?
-          association_class.only_deleted.where(association_find_conditions).first
+        if association.klass.paranoid?
+          paranoia_find_has_one_target(association)
             .try!(:restore, recursive: true, :recovery_window_range => recovery_window_range)
         end
       end
