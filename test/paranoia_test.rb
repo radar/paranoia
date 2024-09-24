@@ -1255,6 +1255,71 @@ class ParanoiaTest < test_framework
     assert_equal 1, ParanoidHasOneWithScope.count # gamma deleted
   end
 
+  def test_delete_all_disabled_by_default
+    assert_nil ParanoidModel.delete_all_enabled
+
+    (0...3).each{ ParanoidModel.create }
+    assert_equal 3, ParanoidModel.count
+    ParanoidModel.delete_all
+    assert_equal 0, ParanoidModel.count
+    assert_equal 0, ParanoidModel.unscoped.count
+  end
+
+  def test_delete_all_called_on_class
+    assert Employee.delete_all_enabled
+
+    (0...3).each{ Employee.create }
+    assert_equal 3, Employee.count
+    Employee.delete_all
+    assert_equal 0, Employee.count
+    assert_equal 3, Employee.unscoped.count
+  end
+
+  def test_delete_all_called_on_relation
+    assert Employee.delete_all_enabled
+
+    (0...3).each{ Employee.create }
+    assert_equal 3, Employee.count
+    Employee.where(id: 1).delete_all
+    assert_equal 2, Employee.count
+    assert_equal 3, Employee.unscoped.count
+  end
+
+  def test_really_delete_all_called_on_class
+    assert Employee.delete_all_enabled
+
+    (0...3).each{ Employee.create }
+    assert_equal 3, Employee.count
+    Employee.really_delete_all
+    assert_equal 0, Employee.count
+    assert_equal 0, Employee.unscoped.count
+  end
+
+  def test_delete_all_called_on_relation
+    assert Employee.delete_all_enabled
+
+    (0...3).each{ Employee.create }
+    assert_equal 3, Employee.count
+    Employee.where(id: 1).really_delete_all
+    assert_equal 2, Employee.count
+    assert_equal 2, Employee.unscoped.count
+  end
+
+  def test_update_has_many_through_relation_delete_associations
+    employer = Employer.create
+    employee1 = Employee.create
+    employee2 = Employee.create
+    job = Job.create :employer => employer, :employee => employee1
+
+    assert_equal 1, employer.jobs.count
+    assert_equal 1, employer.jobs.with_deleted.count
+
+    employer.update(employee_ids: [employee2.id])
+
+    assert_equal 1, employer.jobs.count
+    assert_equal 2, employer.jobs.with_deleted.count
+  end
+
   private
   def get_featureful_model
     FeaturefulModel.new(:name => "not empty")
@@ -1418,16 +1483,17 @@ class Employer < ActiveRecord::Base
   acts_as_paranoid
   validates_uniqueness_of :name
   has_many :jobs
-  has_many :employees, :through => :jobs
+  has_many :employees, :through => :jobs, dependent: :destroy
 end
 
 class Employee < ActiveRecord::Base
-  acts_as_paranoid
+  acts_as_paranoid(delete_all_enabled: true)
   has_many :jobs
   has_many :employers, :through => :jobs
 end
 
 class Job < ActiveRecord::Base
+  acts_as_paranoid(delete_all_enabled: true)
   acts_as_paranoid
   belongs_to :employer
   belongs_to :employee

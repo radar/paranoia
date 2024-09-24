@@ -6,15 +6,11 @@ if [ActiveRecord::VERSION::MAJOR, ActiveRecord::VERSION::MINOR] == [5, 2] ||
 end
 
 module Paranoia
-  @@default_sentinel_value = nil
 
-  # Change default_sentinel_value in a rails initializer
-  def self.default_sentinel_value=(val)
-    @@default_sentinel_value = val
-  end
-
-  def self.default_sentinel_value
-    @@default_sentinel_value
+  class << self
+    # Change default values in a rails initializer
+    attr_accessor :default_sentinel_value,
+                  :delete_all_enabled
   end
 
   def self.included(klazz)
@@ -57,6 +53,16 @@ module Paranoia
                                         "Please pass the id of the object by calling `.id`")
       end
       ids.map { |id| only_deleted.find(id).restore!(opts) }
+    end
+
+    def paranoia_destroy_attributes
+      {
+        paranoia_column => current_time_from_proper_timezone
+      }.merge(timestamp_attributes_with_current_time)
+    end
+
+    def timestamp_attributes_with_current_time
+      timestamp_attributes_for_update_in_model.each_with_object({}) { |attr,hash| hash[attr] = current_time_from_proper_timezone }
     end
   end
 
@@ -200,18 +206,10 @@ module Paranoia
   def paranoia_restore_attributes
     {
       paranoia_column => paranoia_sentinel_value
-    }.merge(timestamp_attributes_with_current_time)
+    }.merge(self.class.timestamp_attributes_with_current_time)
   end
 
-  def paranoia_destroy_attributes
-    {
-      paranoia_column => current_time_from_proper_timezone
-    }.merge(timestamp_attributes_with_current_time)
-  end
-
-  def timestamp_attributes_with_current_time
-    timestamp_attributes_for_update_in_model.each_with_object({}) { |attr,hash| hash[attr] = current_time_from_proper_timezone }
-  end
+  delegate :paranoia_destroy_attributes, to: 'self.class'
 
   def paranoia_find_has_one_target(association)
     association_foreign_key = association.options[:through].present? ? association.klass.primary_key : association.foreign_key
@@ -262,6 +260,14 @@ module Paranoia
   end
 end
 
+module Paranoia::Relation  
+  def paranoia_delete_all
+    update_all(klass.paranoia_destroy_attributes)
+  end
+
+  alias_method :delete_all, :paranoia_delete_all
+end
+
 ActiveSupport.on_load(:active_record) do
   class ActiveRecord::Base
     def self.acts_as_paranoid(options={})
@@ -276,9 +282,10 @@ ActiveSupport.on_load(:active_record) do
       alias_method :really_destroyed?, :destroyed?
       alias_method :really_delete, :delete
       alias_method :destroy_without_paranoia, :destroy
+      class << self; delegate :really_delete_all, to: :all end
 
       include Paranoia
-      class_attribute :paranoia_column, :paranoia_sentinel_value
+      class_attribute :paranoia_column, :paranoia_sentinel_value, :delete_all_enabled
 
       self.paranoia_column = (options[:column] || :deleted_at).to_s
       self.paranoia_sentinel_value = options.fetch(:sentinel_value) { Paranoia.default_sentinel_value }
@@ -297,6 +304,16 @@ ActiveSupport.on_load(:active_record) do
       after_restore {
         self.class.notify_observers(:after_restore, self) if self.class.respond_to?(:notify_observers)
       }
+
+      self.delete_all_enabled = options[:delete_all_enabled] || Paranoia.delete_all_enabled
+
+      if self.delete_all_enabled
+        "#{self}::ActiveRecord_Relation".constantize.class_eval do
+          alias_method :really_delete_all, :delete_all
+
+          include Paranoia::Relation
+        end
+      end
     end
 
     # Please do not use this method in production.
