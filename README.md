@@ -348,6 +348,21 @@ end
 # => NoMethodError: undefined method `with_deleted' for #<Class:0x0123456>
 ```
 
+#### delete_all:
+
+The gem supports `delete_all` method, however it is disabled by default, to enabled add this in your `environment` file
+
+``` ruby
+Paranoia.delete_all_enabled = true
+```
+alternatively, you can enable/disable it for specific models as follow:
+
+``` ruby
+class User < ActiveRecord::Base
+  acts_as_paranoid(delete_all_enabled: true)
+end
+```
+
 ## Acts As Paranoid Migration
 
 You can replace the older `acts_as_paranoid` methods as follows:
