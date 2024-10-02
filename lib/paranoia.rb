@@ -94,7 +94,16 @@ module Paranoia
   end
 
   def trigger_transactional_callbacks?
-    super || @_trigger_destroy_callback && paranoia_destroyed?
+    super || @_trigger_destroy_callback && paranoia_destroyed? ||
+      @_trigger_restore_callback && !paranoia_destroyed?
+  end
+
+  def transaction_include_any_action?(actions)
+    super || actions.any? do |action|
+      if action == :restore
+        paranoia_after_restore_commit && @_trigger_restore_callback
+      end
+    end
   end
 
   def paranoia_delete
@@ -121,6 +130,10 @@ module Paranoia
         if within_recovery_window?(recovery_window_range) && ((noop_if_frozen && !@attributes.frozen?) || !noop_if_frozen)
           @_disable_counter_cache = !paranoia_destroyed?
           write_attribute paranoia_column, paranoia_sentinel_value
+          if paranoia_after_restore_commit
+            @_trigger_restore_callback = true
+            add_to_transaction
+          end
           update_columns(paranoia_restore_attributes)
           each_counter_cached_associations do |association|
             if send(association.reflection.name)
@@ -134,6 +147,10 @@ module Paranoia
     end
 
     self
+  ensure
+    if paranoia_after_restore_commit
+      @_trigger_restore_callback = false
+    end
   end
   alias :restore :restore!
 
@@ -260,6 +277,23 @@ module Paranoia
   end
 end
 
+module ActiveRecord
+  module Transactions
+    module RestoreSupport
+      def self.included(base)
+        base::ACTIONS << :restore unless base::ACTIONS.include?(:restore)
+      end
+    end
+
+    module ClassMethods
+      def after_restore_commit(*args, &block)
+        set_options_for_callbacks!(args, on: :restore)
+        set_callback(:commit, :after, *args, &block)
+      end
+    end
+  end
+end
+
 module Paranoia::Relation  
   def paranoia_delete_all
     update_all(klass.paranoia_destroy_attributes)
@@ -285,10 +319,12 @@ ActiveSupport.on_load(:active_record) do
       class << self; delegate :really_delete_all, to: :all end
 
       include Paranoia
-      class_attribute :paranoia_column, :paranoia_sentinel_value, :delete_all_enabled
+      class_attribute :paranoia_column, :paranoia_sentinel_value, :paranoia_after_restore_commit,
+        :delete_all_enabled
 
       self.paranoia_column = (options[:column] || :deleted_at).to_s
       self.paranoia_sentinel_value = options.fetch(:sentinel_value) { Paranoia.default_sentinel_value }
+      self.paranoia_after_restore_commit = options.fetch(:after_restore_commit) { false }
       def self.paranoia_scope
         where(paranoia_column => paranoia_sentinel_value)
       end
@@ -304,6 +340,10 @@ ActiveSupport.on_load(:active_record) do
       after_restore {
         self.class.notify_observers(:after_restore, self) if self.class.respond_to?(:notify_observers)
       }
+
+      if paranoia_after_restore_commit
+        ActiveRecord::Transactions.send(:include, ActiveRecord::Transactions::RestoreSupport)
+      end
 
       self.delete_all_enabled = options[:delete_all_enabled] || Paranoia.delete_all_enabled
 

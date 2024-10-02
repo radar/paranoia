@@ -30,6 +30,10 @@ def setup!
     'featureful_models' => 'deleted_at DATETIME, name VARCHAR(32)',
     'plain_models' => 'deleted_at DATETIME',
     'callback_models' => 'deleted_at DATETIME',
+    'after_commit_on_restore_callback_models' => 'deleted_at DATETIME',
+    'after_restore_commit_callback_models' => 'deleted_at DATETIME',
+    'after_commit_callback_restore_enabled_models' => 'deleted_at DATETIME',
+    'after_other_commit_callback_restore_enabled_models' => 'deleted_at DATETIME',
     'after_commit_callback_models' => 'deleted_at DATETIME',
     'fail_callback_models' => 'deleted_at DATETIME',
     'association_with_abort_models' => 'deleted_at DATETIME',
@@ -626,6 +630,100 @@ class ParanoiaTest < test_framework
     model.reload
 
     assert model.instance_variable_get(:@restore_callback_called)
+    assert_nil model.instance_variable_get(:@after_commit_callback_called)
+  end
+
+  def test_after_commit_on_restore
+    model = AfterCommitOnRestoreCallbackModel.new
+    model.save
+    id = model.id
+    model.destroy
+
+    assert model.paranoia_destroyed?
+
+    model = AfterCommitOnRestoreCallbackModel.only_deleted.find(id)
+    model.restore!
+    model.reload
+
+    assert model.instance_variable_get(:@restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_commit_callback_called)
+  end
+
+  def test_after_restore_commit
+    model = AfterRestoreCommitCallbackModel.new
+    model.save
+    id = model.id
+    model.destroy
+
+    assert model.paranoia_destroyed?
+
+    model = AfterRestoreCommitCallbackModel.only_deleted.find(id)
+    model.restore!
+    model.reload
+
+    assert model.instance_variable_get(:@restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_commit_callback_called)
+  end
+
+  def test_after_restore_commit_once
+    model = AfterRestoreCommitCallbackModel.new
+    model.save
+    id = model.id
+    model.destroy
+
+    assert model.paranoia_destroyed?
+    assert model.instance_variable_get(:@after_destroy_commit_callback_called)
+
+    model.remove_called_variables
+    model = AfterRestoreCommitCallbackModel.only_deleted.find(id)
+    model.restore!
+    model.reload
+
+    assert model.instance_variable_get(:@restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_commit_callback_called)
+    assert_nil model.instance_variable_get(:@after_destroy_commit_callback_called)
+
+    model.remove_called_variables
+    model.destroy
+    assert model.instance_variable_get(:@after_destroy_commit_callback_called)
+    assert_nil model.instance_variable_get(:@after_restore_commit_callback_called)
+  end
+
+  def test_after_commit_restore_enabled
+    model = AfterCommitCallbackRestoreEnabledModel.new
+    model.save
+    id = model.id
+    model.destroy
+
+    assert model.paranoia_destroyed?
+
+    model = AfterCommitCallbackRestoreEnabledModel.only_deleted.find(id)
+    model.restore!
+    model.reload
+
+    assert model.instance_variable_get(:@restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_callback_called)
+    assert model.instance_variable_get(:@after_commit_callback_called)
+  end
+
+  def test_not_call_after_other_commit_restore_enabled
+    model = AfterOtherCommitCallbackRestoreEnabledModel.new
+    model.save
+    id = model.id
+    model.destroy
+
+    assert model.paranoia_destroyed?
+
+    model = AfterOtherCommitCallbackRestoreEnabledModel.only_deleted.find(id)
+    model.restore!
+    model.reload
+
+    assert model.instance_variable_get(:@restore_callback_called)
+    assert model.instance_variable_get(:@after_restore_callback_called)
+    assert_nil model.instance_variable_get(:@after_other_commit_callback_called)
   end
 
   def test_really_destroy
@@ -1391,6 +1489,47 @@ class CallbackModel < ActiveRecord::Base
 
   def remove_called_variables
     instance_variables.each {|name| (name.to_s.end_with?('_called')) ? remove_instance_variable(name) : nil}
+  end
+end
+
+class AfterCommitOnRestoreCallbackModel < ActiveRecord::Base
+  acts_as_paranoid after_restore_commit: true
+  before_restore { |model| model.instance_variable_set :@restore_callback_called, true }
+  after_restore  { |model| model.instance_variable_set :@after_restore_callback_called, true }
+  after_commit   :set_after_restore_commit_called, on: :restore
+
+  def set_after_restore_commit_called
+    @after_restore_commit_callback_called = true
+  end
+end
+
+class AfterRestoreCommitCallbackModel < ActiveRecord::Base
+  acts_as_paranoid after_restore_commit: true
+  before_restore        { |model| model.instance_variable_set :@restore_callback_called, true }
+  after_restore         { |model| model.instance_variable_set :@after_restore_callback_called, true }
+  after_restore_commit  { |model| model.instance_variable_set :@after_restore_commit_callback_called, true }
+  after_destroy_commit  { |model| model.instance_variable_set :@after_destroy_commit_callback_called, true }
+
+  def remove_called_variables
+    instance_variables.each {|name| (name.to_s.end_with?('_called')) ? remove_instance_variable(name) : nil}
+  end
+end
+
+class AfterCommitCallbackRestoreEnabledModel < ActiveRecord::Base
+  acts_as_paranoid after_restore_commit: true
+  before_restore { |model| model.instance_variable_set :@restore_callback_called, true }
+  after_restore  { |model| model.instance_variable_set :@after_restore_callback_called, true }
+  after_commit   { |model| model.instance_variable_set :@after_commit_callback_called, true }
+end
+
+class AfterOtherCommitCallbackRestoreEnabledModel < ActiveRecord::Base
+  acts_as_paranoid after_restore_commit: true
+  before_restore { |model| model.instance_variable_set :@restore_callback_called, true }
+  after_restore  { |model| model.instance_variable_set :@after_restore_callback_called, true }
+  after_commit   :set_after_other_commit_called, on: [:create, :destroy, :update]
+
+  def set_after_other_commit_called
+    @after_other_commit_callback_called = true
   end
 end
 

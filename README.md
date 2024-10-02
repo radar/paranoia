@@ -206,6 +206,19 @@ Client.restore(id, :recursive => true, :recovery_window => 2.minutes)
 client.restore(:recursive => true, :recovery_window => 2.minutes)
 ```
 
+If you want to trigger an after_commit callback when restoring a record:
+
+``` ruby
+class Client < ActiveRecord::Base
+  acts_as_paranoid after_restore_commit: true
+
+  after_commit          :commit_called, on: :restore
+  # or
+  after_restore_commit  :commit_called
+  ...
+end
+```
+
 Note that by default paranoia will not prevent that a soft destroyed object can't be associated with another object of a different model.
 A Rails validator is provided should you require this functionality:
   ``` ruby
