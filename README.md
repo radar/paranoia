@@ -363,7 +363,7 @@ end
 
 #### delete_all:
 
-The gem supports `delete_all` method, however it is disabled by default, to enabled add this in your `environment` file
+The gem supports `delete_all` method, however it is disabled by default, to enable it add this in your `environment` file
 
 ``` ruby
 Paranoia.delete_all_enabled = true
