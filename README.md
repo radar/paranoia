@@ -35,12 +35,21 @@ For Rails 4 and 5, please use version 2 of Paranoia (2.2 or greater required for
 gem "paranoia", "~> 2.2"
 ```
 
+For Rails 6, 7 and 8, please use version 3 of Paranoia:
+
+``` ruby
+gem "paranoia", "~> 3.0"
+```
+
 Of course you can install this from GitHub as well from one of these examples:
 
 ``` ruby
 gem "paranoia", github: "rubysherpas/paranoia", branch: "rails3"
 gem "paranoia", github: "rubysherpas/paranoia", branch: "rails4"
 gem "paranoia", github: "rubysherpas/paranoia", branch: "rails5"
+gem "paranoia", github: "rubysherpas/paranoia", branch: "rails6"
+gem "paranoia", github: "rubysherpas/paranoia", branch: "rails7"
+gem "paranoia", github: "rubysherpas/paranoia", branch: "rails8"
 ```
 
 Then run:
@@ -389,6 +398,23 @@ You can replace the older `acts_as_paranoid` methods as follows:
 
 The `recover` method in `acts_as_paranoid` runs `update` callbacks.  Paranoia's
 `restore` method does not do this.
+
+## Requirements
+
+* Ruby >= 3.2.0 (required for Rails 8.0)
+* Rails >= 6.1, < 9.0
+* ActiveRecord >= 6.1
+
+### Version Compatibility
+
+| Rails Version | Paranoia Version | Ruby Version |
+|--------------|------------------|--------------|
+| Rails 8.0    | >= 3.0          | >= 3.2.0     |
+| Rails 7.x    | >= 3.0          | >= 2.7.0     |
+| Rails 6.1    | >= 3.0          | >= 2.7.0     |
+| Rails 5.x    | 2.6.2           | >= 2.4.0     |
+
+For Rails 5 support, use version 2.6.2.
 
 ## Callbacks
 
