@@ -1,5 +1,11 @@
 # paranoia Changelog
 
+## 3.0.1 - January 19, 2025
+
+- [#566](https://github.com/rubysherpas/paranoia/pull/566) Handle #delete_all
+- [#559](https://github.com/rubysherpas/paranoia/pull/559) Trigger an after_commit callback when restoring a record
+- [#567](https://github.com/rubysherpas/paranoia/pull/567) Fix typo in newly added readme
+
 ## 3.0.0 - August 13, 2024
 
 _Tagged as 3.0 as Ruby + Rails version constraints have been modernised._
