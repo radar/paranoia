@@ -1,7 +1,7 @@
 require 'active_record' unless defined? ActiveRecord
 
 if [ActiveRecord::VERSION::MAJOR, ActiveRecord::VERSION::MINOR] == [5, 2] ||
-   ActiveRecord::VERSION::MAJOR > 5
+   ActiveRecord::VERSION::MAJOR >= 6
   require 'paranoia/active_record_5_2'
 end
 
@@ -22,7 +22,7 @@ module Paranoia
 
     # If you want to find all records, even those which are deleted
     def with_deleted
-      if ActiveRecord::VERSION::STRING >= "4.1"
+      if ActiveRecord::VERSION::STRING >= "6.0"
         return unscope where: paranoia_column
       end
       all.tap { |x| x.default_scoped = false }
